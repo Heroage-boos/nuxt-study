@@ -10,17 +10,15 @@
 
 
 <script setup lang="ts">
-
 definePageMeta({
     layout: false,
-    middleware:"auth"
+    middleware: "auth"
 });
-
 
 </script>
 
 <style lang="scss" >
 .pinka {
-    color:$primary;
+    color: $primary;
 }
 </style>
