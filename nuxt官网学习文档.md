@@ -313,6 +313,45 @@ export default defineNuxtConfig({
 
 ​	
 
+#### 配置代理
+
+Nuxt3 最新的正式版使用了`nitro`做为 dev server, 在其[官方文档](https://link.segmentfault.com/?enc=ibjMcxFqrwEFz4hShIYiJA%3D%3D.XJV9FPpg387gVQVFj97n7DGk6p4tMtOz3da%2FLPof55ojcHRabUldImo1lclVS1Cq)中，有说明如何配置代理:
+
+```javascript
+{
+  devProxy: {
+    '/proxy/test': 'http://localhost:3001',
+    '/proxy/example': { target: 'https://example.com', changeOrigin: true }
+  }
+}
+```
+
+我们需要将该配置代理的选项放置到 nuxt.config.ts 文件的 nitro 选项中，如下：
+
+```javascript
+export default defineNuxtConfig({
+  // ...other setting
+  server: false, // 不开启服务端渲染
+  nitro: {
+    devProxy: {
+      "/api": {
+        target: "http://localhost:3001", // 这里是接口地址
+        changeOrigin: true,
+        prependPath: true,
+      },
+    },
+  },
+});
+```
+
+该方式针对服务端渲染的场景也能生效，但是仅会针对发生在客户端测的请求进行代理。比如设置了`server: false`或者因为一些交互行为而触发的网络请求。
+
+```javascript
+const { data: userinfo } = await useFetch("/api/userinfo", {
+  server: false,
+});
+```
+
 3.更多常用配置
 
 |  常用配置   |      配置文件      |
@@ -794,3 +833,272 @@ nuxt利用vue的组件在页面和布局之间应用切换
 
 通过启用页面转换可以对所有页面应用自动转换：
 
+
+
+## 数据抓取
+
+​	Nuxt提供了useFetch、useLazyFetch、useAsyncData和useLayncData来处理应用程序中数据获取。
+
+### 	useFetch
+
+​		在您的页面、组件和插件中，使用它useFetch从任何url中获取信息
+
+​		 useAsyncData 提供了一个方便的包装器$fetch。它会根据url和获取选项自动生成秘钥，根据服务器路由为请求url提供类型提示，并推断api响应类型。
+
+```vue
+··pages/mockFetch.vue
+	<script setup lang="ts">
+const { data: count } = await useFetch(() => `api/24k/hot`, {
+   params:{
+    type:0
+   }
+});
+
+··
+```
+
+### 	useLazyFetch
+
+​		useLazyFetch行为与useFetch选项lazy:true集相同，异步函数不会阻止导航。
+
+```vue
+<template>
+    <!-- you will need to handle a loading state -->
+    <div v-if="pending">
+        Loading ...
+    </div>
+    <div v-else>
+        <div v-for="post in posts">
+            <!-- do something -->
+        </div>
+
+    </div>
+</template>
+  
+<script setup>
+const { pending, data: posts } = useLazyFetch('/api/posts')
+</script>
+```
+
+#### useAsyncData
+
+​	使用useAsyncData来访问异步解析的数据
+
+#####  useAsyncData和useFetch区别？
+
+ 	` useFetch`接收一个 URL 并获取该数据，而`useAsyncData`可能有更复杂的逻辑。`useFetch(url)`几乎等同于`useAsyncData(url, () => $fetch(url))`- 它是最常见用例的开发人员体验糖。
+
+```typescript
+··server/api/count.ts
+	let counter = 0
+	export default defineEventHandler(() => {
+     counter++
+     return counter
+})
+··
+```
+
+```vue
+``app.vue
+<script setup>
+const { data } = await useAsyncData('count', () => $fetch('/api/count'))
+</script>
+
+<template>
+  Page visits: {{ data }}
+</template>
+
+```
+
+#### useLazyAsyncData
+
+​	此可组合项的行为与`useAsyncData`选项`lazy: true`集相同。换句话说，异步函数不会阻止导航。这意味着您将需要处理数据所在的情况`null`
+
+```
+··app.vue
+<template>
+  <div>
+    {{ pending ? 'Loading' : count }}
+  </div>
+</template>
+
+<script setup>
+const { pending, data: count } = useLazyAsyncData('count', () => $fetch('/api/count'))
+watch(count, (newCount) => {//count一开始是空的，所以不会访问接口
+
+})
+</script>
+··
+```
+
+#### RefreshingData 刷新Nuxt数据
+
+​	有时，用户访问页面的过程中，需要刷新从api加载数据，如果用户选择分页、过滤结果，搜索等，可以使用refresh()从useFetch()可组合项返回的方法来刷新不同查询参数的数据。
+
+```vue
+··app.vue
+<script setup lang="ts">
+const page = ref(1)
+
+//刷新请求数据接口
+const { data: users, pending, refresh, error } = await useFetch(() => `users?page=${page.value}&take=6`, { baseURL: "/mock " }
+)
+
+//上一页
+function previous() {
+    page.value--
+    refresh()
+}
+    
+// 下一页
+function next() {
+    page.value++
+    refresh()
+}
+
+</script>
+··
+```
+
+​	查询参数更改时调用`refresh()`从可从组合项返回方法；
+
+​	默认情况下，`refresh()`将取消任何挂起的请求，它们的结果不会更新数据或挂起状态。在此新请求解决之前，任何先前等待的承诺都不会解决。您可以通过设置选项来防止此行为`dedupe`，如果有的话，该选项将返回对当前正在执行的请求的承诺。
+
+```js
+··
+	refresh({ dedupe: true })
+··
+```
+
+####  
+
+#### clearNuxtData清除nuxt缓存数据
+
+​	`useAsyncData`删除缓存数据、错误状态和和的未决承诺`useFetch`。
+
+如果您想使另一个页面的数据获取无效，可以使用clearNuxtData。
+
+
+
+#### API支持
+
+​	 asyncData Nuxt3提供了一种在option api中抓取的方法，必须将组件定义包装在其中，definedNuxtComponent工作。
+
+```vue
+··components/other.vue
+<script lang="ts">
+export default defineNuxtComponent({
+    fetchKey: 'hello',
+    async asyncData() {
+        return {
+            hello: await $fetch('/api/hello')
+        }
+    }
+})
+</script>
+··
+```
+
+#### $fetch 直接使用
+
+​	某些情况下，您可能需要直接调用 API。Nuxt 3 提供了一个全局可用的`$fetch`方法，使用与[Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)相同的 API 的[unjs/ofetch](https://github.com/unjs/ofetch)（除此之外） 。`fetch`使用`$fetch`有许多好处，包括：
+
+如果它在服务器上运行，它将“巧妙地”处理直接 API 调用，或者如果它在客户端上运行，则对您的 API 进行客户端调用。（它还可以处理调用第三方 API。）它还具有便利的功能，包括自动解析响应和字符串化数据。
+
+#### 同构$fetch 和 fetch 调用（标头隐藏，cookie...）
+
+​	`$fetch`在浏览器中调用时，像这样的用户标头`cookie`将被直接发送到 API。但在服务器端呈现期间，由于`$fetch`请求发生在服务器“内部”，因此它不包含用户的浏览器 cookie，也不传递来自获取响应的 cookie。
+
+```vue
+``app.vue
+	<script setup>
+	const headers = useRequestHeaders(['cookie'])
+	const { data } = await useFetch('/api/me', { headers })
+</script>
+``
+```
+
+​	在将标头代理到外部 API 之前要非常小心，并且只包含您需要的标头。并非所有标头都可以安全绕过，并且可能会引入不需要的行为。以下是不被代理的常见标头列表：
+
+- `host`,`accept`
+- `content-length`, `content-md5`,`content-type`
+- `x-forwarded-host`, `x-forwarded-port`,`x-forwarded-proto`
+- `cf-connecting-ip`,`cf-ray`
+
+
+
+#### 多次调用
+
+如果你想使用多个异步操作，比如多次调用`useFetch`，你需要`<script setup>`在设置结束时一起使用或等待它们。
+
+```vue
+··app.vue
+<script>
+export default defineComponent({
+  async setup() {
+    const [{ data: organization }, { data: repos }] = await Promise.all([
+      useFetch(`https://api.github.com/orgs/nuxt`),
+      useFetch(`https://api.github.com/orgs/nuxt/repos`)
+    ])
+
+    return {
+      organization,
+      repos
+    }
+  }
+})
+</script>
+
+<template>
+  <header>
+    <h1>{{ organization.login }}</h1>
+    <p>{{ organization.description }}</p>
+  </header>
+</template>
+··
+```
+
+
+
+### 状态管理
+
+​	Nuxt 提供了`useState`可组合项来创建跨组件的响应式和 SSR 友好的共享状态。
+
+`	useState`是一个 SSR 友好的替代品。它的值将在服务器端渲染后（在客户端水合作用期间）保留，并使用唯一密钥在所有组件之间共享。
+
+```typescript
+··composables/states.ts
+export const useCounter = () => useState<number>('counter', () => 0)
+export const useColor = () => useState<string>('color', () => 'pink')
+··
+```
+
+```vue
+``pages/statePage.vue
+<script setup>
+const color = useColor() // 与useState('color')相同。
+const counter = useCounter() // 与useState('counter')相同。
+
+</script>
+<template>
+  <p>Current color: {{ color }}</p>
+  <button @click="counter++">
+      +
+    </button>
+    <button @click="counter--">
+      -
+    </button>
+    <p>Current counter: {{ counter }}</p>
+</template>
+``
+```
+
+#### 使用第三方库
+
+​	Nuxt**过去依赖**Vuex 库来提供全局状态管理。如果您从 Nuxt 2 迁移，请前往[迁移指南](https://nuxt.com/docs/migration/configuration#vuex)。
+
+​	Nuxt 对状态管理没有意见，因此请随意选择适合您需求的解决方案。与最流行的状态管理库有多种集成，包括：
+
+- [Pinia](https://nuxt.com/modules/pinia) ——Vue 官方推荐
+- [Harlem](https://nuxt.com/modules/harlem) - 不可变的全局状态管理
+- [XState](https://nuxt.com/modules/xstate) - 状态机方法，带有用于可视化和测试状态逻辑的工具

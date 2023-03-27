@@ -88,18 +88,10 @@ export default defineNuxtConfig({
     // "bulma",//直接加载一个Node.js模块（这里是一个Sass文件）。
     // "@/assets/css/main.css",//项目中的css文件
     "@/assets/style/index.scss", //项目中的scss文件
-    "@/assets/style/common.scss", 
+    "@/assets/style/common.scss",
   ],
   debug: false, //设置为true开启调试模式  在服务器上打印出hook名称和时间，并在浏览器中记录hook参数
 
-  devServer: {
-    //开发服务器
-    host: "", //默认值:localhost
-    https: false, //是否开启https
-    port: 3000, //监听端口 默认"3000"
-    url: "http://localhost:3000", //监听url
-  },
-  devServerHandlers: [], //Nitro 仅开发服务器处理程序。具体参阅： https: //nitro.unjs.io/guide/introduction/routing
   dir: {
     //自定义Nuxt使用的目录结构，除非需要，否则最好坚持使用默认值。
     assets: "assets", //静态资源目录 默认： "assets"
@@ -170,9 +162,27 @@ export default defineNuxtConfig({
     "node_modules", //默认值
     "/Users/daniel/code/nuxt.js/packages/schema/node_modules", //默认值
   ],
+  
   nitro: {
     //nitro的配置 参阅https: //nitro.unjs.io/config/
+    devProxy: {
+      //配置代理
+      "/api": {
+        target: "http://192.168.0.146:3001/api", // 这里是接口地址
+        changeOrigin: true,
+        prependPath: true,
+      },
+    },
   },
+  devServer: {
+    //开发服务器
+    host: "", //默认值:localhost
+    https: false, //是否开启https
+    port: 3000, //监听端口 默认"3000"
+    url: "http://locahost:3000", //监听url
+  },
+  devServerHandlers: [], //Nitro 仅开发服务器处理程序。具体参阅： https: //nitro.unjs.io/guide/introduction/routing
+
   pages: true, //pages/是否在 Nuxt 3 中使用 vue-router 集成。如果你没有提供一个值，如果你的源文件夹中有一个目录，它将被启用。
   plugins: [
     //一系列 nuxt 应用程序插件。插件也会从目录中自动注册，除非您需要自定义它们的顺序，否则~/plugins不需要列出这些插件。nuxt.config所有插件都通过它们的 src 路径进行了重复数据删除
@@ -211,5 +221,5 @@ export default defineNuxtConfig({
 
   //Vue.js 配置 请参阅：https://vuejs.org/api/application.html#app-config-compileroptions
   vue: {},
-  workspaceDir:"",//定义应用程序的工作区目录。 默认： "/<rootDir>" 这通常在 monorepo 设置中使用。Nuxt 将尝试自动检测您的工作区目录，但您可以在此处覆盖它。通常不需要配置此选项。
+  workspaceDir: "", //定义应用程序的工作区目录。 默认： "/<rootDir>" 这通常在 monorepo 设置中使用。Nuxt 将尝试自动检测您的工作区目录，但您可以在此处覆盖它。通常不需要配置此选项。
 });

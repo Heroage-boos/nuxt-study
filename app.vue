@@ -8,8 +8,15 @@
       <NuxtLink to="/abc/a">abc-a page</NuxtLink>
       <NuxtLink to="/other">other page</NuxtLink>
       <NuxtLink to="/mockApiFetch">apiFetch page</NuxtLink>
+      <NuxtLink to="/mockUseLazyFetch">apiLazyFetch page</NuxtLink>
+      <NuxtLink to="/mockUseAsyncData">mockUseAsyncData page</NuxtLink>
+      <NuxtLink to="/mockRefreshingData">mockRefreshingData page</NuxtLink>
+      <NuxtLink to="/mockFetch">mockFetch page</NuxtLink>
+      <NuxtLink to="/tooFetch">tooFetch page</NuxtLink>
+      <NuxtLink to="/countState">countState page</NuxtLink>
+      
     </div>
-
+    
     <!-- components下的组件 -->
     <changeLayout></changeLayout>
 
@@ -83,7 +90,7 @@ useHead({
 <style lang="scss" scoped>
 .page {
   display: flex;
-
+  flex-wrap: wrap;
   >a {
     margin-right: 24px;
     color: black;
